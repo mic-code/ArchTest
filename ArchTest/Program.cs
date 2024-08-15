@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Arch.Core;
+using Arch.Core.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -29,11 +31,35 @@ internal class Program
 
         //var logger = AppHost.Services.GetService<ILogger<AliCloudUtility>>();
 
-        Run().Wait();
+        Run();
 
         Log.Logger.Information("End");
     }
-    static async Task Run()
+
+    public struct Position { public float X, Y; }
+    public struct Velocity { public float Dx, Dy; }
+
+    static void Run()
     {
+        var world = World.Create();
+        for (var index = 0; index < 1000; index++)
+        {
+            var entity = world.Create(new Position { X = 0, Y = 0 }, new Velocity { Dx = 1, Dy = 1 });
+            var refs = entity.Get<Position,Velocity>();
+            entity.Set(new Position());
+        }
+
+        // Query and modify entities ( There are also alternatives without lambdas ;) ) 
+        var query = new QueryDescription().WithAll<Position, Velocity>(); // Targets entities with Position AND Velocity.
+        world.Query(in query, (ref Position pos, ref Velocity vel) =>
+        {
+            pos.X += vel.Dx;
+            pos.Y += vel.Dy;
+        });
+
+        world.Query(in query, (ref Position pos) =>
+        {
+            Log.Logger.Information(pos.X + " " + pos.Y);
+        });
     }
 }
